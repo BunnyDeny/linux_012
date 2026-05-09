@@ -97,7 +97,7 @@ int sys_kill(int pid,int sig) {
         return(kill_pg(current->pid,sig,0));
     if (pid == -1) {
         while (--p > &FIRST_TASK)
-            if (err = send_sig(sig,*p,0))
+            if ((err = send_sig(sig,*p,0)))
                 retval = err;
         return(retval);
     }
@@ -181,7 +181,7 @@ volatile void do_exit(long code) {
      *    as a result of our exiting, and if they have any stopped
      *    jons, send them a SIGUP and then a SIGCONT.  (POSIX 3.2.2.2)
      */
-    if (p = current->p_cptr) {
+    if ((p = current->p_cptr)) {
         while (1) {
             p->p_pptr = task[1];
             if (p->state == TASK_ZOMBIE)
@@ -235,6 +235,7 @@ volatile void do_exit(long code) {
 
 int sys_exit(int error_code) {
     do_exit((error_code&0xff)<<8);
+    return 0;
 }
 
 int sys_waitpid(pid_t pid,unsigned long * stat_addr, int options) {

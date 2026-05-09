@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <signal.h>
 #include <utime.h>
 
 extern int sys_setup(void * BIOS);

@@ -65,9 +65,6 @@ static void time_init() {
     startup_time = kernel_mktime(&time);
 }
 
-static char * argv_rc[] = { "/bin/sh", NULL };
-static char * envp_rc[] = { "HOME=/", NULL ,NULL };
-
 static char * argv[] = { "-/bin/sh",NULL };
 static char * envp[] = { "HOME=/usr/root", NULL, NULL };
 
@@ -106,8 +103,6 @@ void main(void) {
     move_to_user_mode();
     printf("\x1b[31m In user mode!\n\r\x1b[0m");
 
-    struct termios tms;
-
      if (fork() == 0) {
         init();
     }
@@ -116,7 +111,6 @@ void main(void) {
 }
 
 void init() {
-    int pid = 0;
     setup((void *) &drive_info);
     (void)open("/dev/tty0", O_RDWR, 0);
     dup(0);

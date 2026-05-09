@@ -5,7 +5,7 @@
 #define DAY (24*HOUR)
 #define YEAR (365*DAY)
 
-static int month[12] = {
+static int month[13] = {
     0,
     DAY*(31),
     DAY*(31 + 29),
