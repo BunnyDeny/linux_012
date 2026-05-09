@@ -1,29 +1,30 @@
+BUILD_DIR ?= $(CURDIR)/build/kernel/chr_drv
+
 AR  := ar
 LD  := ld
 GCC := gcc
 CCFLAG := -m32 -I../../include -nostdinc -ffreestanding -fno-pic -Wall -fomit-frame-pointer -fno-stack-protector -Wno-incompatible-pointer-types -fcommon -c
-OBJS   := tty_io.o console.o keyboard.o kboard.o tty_ioctl.o
 
-tty_io.o : tty_io.c
-	$(GCC) $(CCFLAG) -o $@ $<
+OBJS := $(addprefix $(BUILD_DIR)/, tty_io.o console.o keyboard.o kboard.o tty_ioctl.o)
 
-console.o : console.c
-	$(GCC) $(CCFLAG) -o $@ $<
+CHR_DRV_A := $(BUILD_DIR)/chr_drv.a
 
-keyboard.o : keyboard.S
-	$(GCC) -m32 -traditional -c -o $@ $<
+.PHONY: chr_drv.a clean
 
-kboard.o : kboard.c
-	$(GCC) $(CCFLAG) -o $@ $<
+chr_drv.a: $(CHR_DRV_A)
 
-tty_ioctl.o : tty_ioctl.c
-	$(GCC) $(CCFLAG) -o $@ $<
-
-chr_drv.a : $(OBJS)
+$(CHR_DRV_A): $(OBJS)
+	@mkdir -p $(BUILD_DIR)
 	$(AR) rcs $@ $^
 	sync
 
-clean : 
-	rm -f *.o
-	rm -f chr_drv.a
+$(BUILD_DIR)/keyboard.o: keyboard.S
+	@mkdir -p $(BUILD_DIR)
+	$(GCC) -m32 -traditional -c -o $@ $<
 
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p $(BUILD_DIR)
+	$(GCC) $(CCFLAG) -o $@ $<
+
+clean:
+	rm -rf $(BUILD_DIR)

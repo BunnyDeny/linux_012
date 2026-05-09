@@ -1,40 +1,47 @@
-AS := as
-LD := ld -m elf_x86_64
+# 参考现代 Linux 内核的 out-of-tree 构建风格
+# 所有编译产物统一输出到 build/ 目录，与源码树完全分离
+BUILD_DIR := $(CURDIR)/build
 
+AS  := as
+LD  := ld -m elf_x86_64
 LDFLAG := -Ttext 0x0 -s --oformat binary
 
-image : linux.img
+# 最终产物路径
+IMAGE         := $(BUILD_DIR)/linux.img
+BOOTSECT      := $(BUILD_DIR)/bootsect
+SETUP         := $(BUILD_DIR)/setup
+TOOLS_BUILD   := $(BUILD_DIR)/tools/build
+KERNEL_SYSTEM := $(BUILD_DIR)/kernel/system
 
-linux.img : tools/build bootsect setup kernel/system
-	./tools/build bootsect setup kernel/system > $@
+# 传递给子目录的构建目录变量
+MAKE_FLAGS = BUILD_DIR=$(BUILD_DIR)
 
-tools/build : tools/build.c
+.PHONY: all image clean
+
+all: image
+
+image: $(IMAGE)
+
+$(IMAGE): $(TOOLS_BUILD) $(BOOTSECT) $(SETUP) $(KERNEL_SYSTEM)
+	@mkdir -p $(BUILD_DIR)
+	$(TOOLS_BUILD) $(BOOTSECT) $(SETUP) $(KERNEL_SYSTEM) > $@
+
+$(TOOLS_BUILD): tools/build.c
+	@mkdir -p $(BUILD_DIR)/tools
 	gcc -o $@ $<
 
-kernel/system : kernel/head.S kernel/*.c mm/*.c kernel/blk_drv/*.c
-	cd kernel; make system; cd ..
+$(KERNEL_SYSTEM): kernel/head.S kernel/*.c
+	$(MAKE) $(MAKE_FLAGS)/kernel -C kernel system
 
-bootsect : bootsect.o
-	$(LD) $(LDFLAG) -o $@ $<
+$(BOOTSECT): bootsect.S
+	@mkdir -p $(BUILD_DIR)
+	$(AS) -o $(BUILD_DIR)/bootsect.o $<
+	$(LD) $(LDFLAG) -o $@ $(BUILD_DIR)/bootsect.o
 
-bootsect.o : bootsect.S
-	$(AS) -o $@ $<
-
-setup : setup.o
-	$(LD) $(LDFLAG) -e _start_setup -o $@ $<
-
-setup.o : setup.S
-	$(AS) -o $@ $<
-
-chr_drv/chr_drv.a: chr_drv/*.c
-	cd chr_drv; make chr_drv.a; cd ..
+$(SETUP): setup.S
+	@mkdir -p $(BUILD_DIR)
+	$(AS) -o $(BUILD_DIR)/setup.o $<
+	$(LD) $(LDFLAG) -e _start_setup -o $@ $(BUILD_DIR)/setup.o
 
 clean:
-	rm -f *.o
-	rm -f bootsect
-	rm -f setup
-	rm -f tools/build
-	rm -f linux.img
-	cd kernel; make clean; cd ..
-	cd tools; make clean; cd ..
-
+	rm -rf $(BUILD_DIR)
